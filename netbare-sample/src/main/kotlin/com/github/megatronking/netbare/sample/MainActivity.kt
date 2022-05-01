@@ -15,91 +15,91 @@ import java.io.IOException
 
 class MainActivity : AppCompatActivity(), NetBareListener {
 
-    companion object {
-        private const val REQUEST_CODE_PREPARE = 1
-    }
+  companion object {
+    private const val REQUEST_CODE_PREPARE = 1
+  }
 
-    private lateinit var mNetBare : NetBare
+  private lateinit var mNetBare: NetBare
 
-    private lateinit var mActionButton : Button
+  private lateinit var mActionButton: Button
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    setContentView(R.layout.activity_main)
 
-        mNetBare = NetBare.get()
+    mNetBare = NetBare.get()
 
-        mActionButton = findViewById(R.id.action)
-        mActionButton.setOnClickListener {
-            if (mNetBare.isActive) {
-                mNetBare.stop()
-            } else{
-                prepareNetBare()
-            }
-        }
-
-        // 监听NetBare服务的启动和停止
-        mNetBare.registerNetBareListener(this)
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        mNetBare.unregisterNetBareListener(this)
+    mActionButton = findViewById(R.id.action)
+    mActionButton.setOnClickListener {
+      if (mNetBare.isActive) {
         mNetBare.stop()
+      } else {
+        prepareNetBare()
+      }
     }
 
-    override fun onServiceStarted() {
-        runOnUiThread {
-            mActionButton.setText(R.string.stop_netbare)
-        }
-    }
+    // 监听NetBare服务的启动和停止
+    mNetBare.registerNetBareListener(this)
+  }
 
-    override fun onServiceStopped() {
-        runOnUiThread {
-            mActionButton.setText(R.string.start_netbare)
-        }
-    }
+  override fun onDestroy() {
+    super.onDestroy()
+    mNetBare.unregisterNetBareListener(this)
+    mNetBare.stop()
+  }
 
-    private fun prepareNetBare() {
-        // 安装自签证书
-        // if (!JKS.isInstalled(this, App.JSK_ALIAS)) {
-        //     try {
-        //         JKS.install(this, App.JSK_ALIAS, App.JSK_ALIAS)
-        //     } catch(e : IOException) {
-        //         // 安装失败
-        //         e.printStackTrace()
-        //     }
-        //     return
-        // }
-        // 配置VPN
-        val intent = NetBare.get().prepare()
-        if (intent != null) {
-            startActivityForResult(intent, REQUEST_CODE_PREPARE)
-            return
-        }
-        // 启动NetBare服务
-        mNetBare.start(NetBareConfig.defaultHttpConfig(null,
-                interceptorFactories()))
+  override fun onServiceStarted() {
+    runOnUiThread {
+      mActionButton.setText(R.string.stop_netbare)
     }
+  }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (resultCode == Activity.RESULT_OK && requestCode == REQUEST_CODE_PREPARE) {
-            prepareNetBare()
-        }
+  override fun onServiceStopped() {
+    runOnUiThread {
+      mActionButton.setText(R.string.start_netbare)
     }
+  }
 
-    private fun interceptorFactories() : List<HttpInterceptorFactory> {
-        // 拦截器范例1：打印请求url
-        val interceptor1 = HttpUrlPrintInterceptor.createFactory()
-        // 注入器范例1：替换百度首页logo
-        val injector1 = HttpInjectInterceptor.createFactory(BaiduLogoInjector())
-        // 注入器范例2：修改发朋友圈定位
-        val injector2 = HttpInjectInterceptor.createFactory(WechatLocationInjector())
-        // 可以添加其它的拦截器，注入器
-        // ...
-        return listOf(interceptor1, injector1, injector2)
+  private fun prepareNetBare() {
+    // 安装自签证书
+    // if (!JKS.isInstalled(this, App.JSK_ALIAS)) {
+    //     try {
+    //         JKS.install(this, App.JSK_ALIAS, App.JSK_ALIAS)
+    //     } catch(e : IOException) {
+    //         // 安装失败
+    //         e.printStackTrace()
+    //     }
+    //     return
+    // }
+    // 配置VPN
+    val intent = NetBare.get().prepare()
+    if (intent != null) {
+      startActivityForResult(intent, REQUEST_CODE_PREPARE)
+      return
     }
+    // 启动NetBare服务
+    // mNetBare.start(NetBareConfig.defaultHttpConfig(App.getInstance().getJSK(), interceptorFactories()))
+    mNetBare.start(NetBareConfig.defaultHttpConfig(null, interceptorFactories()))
+  }
+
+  override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+    super.onActivityResult(requestCode, resultCode, data)
+    if (resultCode == Activity.RESULT_OK && requestCode == REQUEST_CODE_PREPARE) {
+      prepareNetBare()
+    }
+  }
+
+  private fun interceptorFactories(): List<HttpInterceptorFactory> {
+    // 拦截器范例1：打印请求url
+    val interceptor1 = HttpUrlPrintInterceptor.createFactory()
+    // 注入器范例1：替换百度首页logo
+    val injector1 = HttpInjectInterceptor.createFactory(BaiduLogoInjector())
+    // 注入器范例2：修改发朋友圈定位
+    val injector2 = HttpInjectInterceptor.createFactory(WechatLocationInjector())
+    // 可以添加其它的拦截器，注入器
+    // ...
+    return listOf(interceptor1, injector1, injector2)
+  }
 
 
 }
