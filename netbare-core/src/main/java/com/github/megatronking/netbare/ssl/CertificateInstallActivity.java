@@ -20,7 +20,8 @@ import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.os.Bundle;
 import android.security.KeyChain;
-import android.support.annotation.Nullable;
+
+import androidx.annotation.Nullable;
 
 import com.github.megatronking.netbare.NetBareLog;
 
@@ -35,54 +36,54 @@ import java.io.IOException;
  */
 public class CertificateInstallActivity extends Activity {
 
-    private static final int REQUEST_CODE_INSTALL = 1;
-    public static final String EXTRA_ALIAS = "jks_alias";
+  private static final int REQUEST_CODE_INSTALL = 1;
+  public static final String EXTRA_ALIAS = "jks_alias";
 
-    @Override
-    protected void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        Bundle bundle = getIntent().getExtras();
-        if (bundle == null) {
-            finish();
-            return;
+  @Override
+  protected void onCreate(@Nullable Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+    Bundle bundle = getIntent().getExtras();
+    if (bundle == null) {
+      finish();
+      return;
+    }
+    Intent intent = KeyChain.createInstallIntent();
+    intent.putExtras(bundle);
+    try {
+      startActivityForResult(intent, REQUEST_CODE_INSTALL);
+    } catch (ActivityNotFoundException e) {
+      NetBareLog.e("Unable to start certificate installer.");
+      finish();
+    }
+
+  }
+
+  @Override
+  protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    super.onActivityResult(requestCode, resultCode, data);
+    if (requestCode == REQUEST_CODE_INSTALL && resultCode == RESULT_OK) {
+      File jsk = new File(getCacheDir(),
+          getIntent().getStringExtra(EXTRA_ALIAS) + JKS.KEY_JKS_FILE_EXTENSION);
+      try {
+        if (!jsk.exists() && !jsk.createNewFile()) {
+          throw new IOException("Create jks file failed.");
         }
-        Intent intent = KeyChain.createInstallIntent();
-        intent.putExtras(bundle);
-        try {
-            startActivityForResult(intent, REQUEST_CODE_INSTALL);
-        } catch (ActivityNotFoundException e) {
-            NetBareLog.e("Unable to start certificate installer.");
-            finish();
-        }
+      } catch (IOException e) {
+        NetBareLog.wtf(e);
+      }
     }
+    finish();
+  }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQUEST_CODE_INSTALL && resultCode == RESULT_OK) {
-            File jsk = new File(getCacheDir(),
-                    getIntent().getStringExtra(EXTRA_ALIAS) + JKS.KEY_JKS_FILE_EXTENSION);
-            try {
-                if(!jsk.exists() && !jsk.createNewFile()) {
-                    throw new IOException("Create jks file failed.");
-                }
-            } catch (IOException e) {
-                NetBareLog.wtf(e);
-            }
-        }
-        finish();
-    }
+  @Override
+  protected void onSaveInstanceState(Bundle outState) {
+    super.onSaveInstanceState(outState);
+    outState.putAll(getIntent().getExtras());
+  }
 
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        outState.putAll(getIntent().getExtras());
-    }
-
-    @Override
-    protected void onRestoreInstanceState(Bundle savedInstanceState) {
-        super.onRestoreInstanceState(savedInstanceState);
-        getIntent().putExtras(savedInstanceState);
-    }
-
+  @Override
+  protected void onRestoreInstanceState(Bundle savedInstanceState) {
+    super.onRestoreInstanceState(savedInstanceState);
+    getIntent().putExtras(savedInstanceState);
+  }
 }

@@ -15,7 +15,7 @@
  */
 package com.github.megatronking.netbare.http;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import com.github.megatronking.netbare.gateway.Request;
 import com.github.megatronking.netbare.gateway.Response;
@@ -44,100 +44,100 @@ import java.util.List;
  */
 /* package */ class HttpVirtualGateway extends TcpVirtualGateway {
 
-    private HttpZygoteRequest mHttpZygoteRequest;
-    private HttpZygoteResponse mHttpZygoteResponse;
+  private HttpZygoteRequest mHttpZygoteRequest;
+  private HttpZygoteResponse mHttpZygoteResponse;
 
-    private List<HttpInterceptor> mInterceptors;
+  private List<HttpInterceptor> mInterceptors;
 
-    /* package */ HttpVirtualGateway(Session session, Request request, Response response, JKS jks,
-                                     final List<HttpInterceptorFactory> factories) {
-        super(session, request, response);
+  /* package */ HttpVirtualGateway(Session session, Request request, Response response, JKS jks,
+                                   final List<HttpInterceptorFactory> factories) {
+    super(session, request, response);
 
-        HttpSessionFactory sessionFactory = new HttpSessionFactory();
-        this.mHttpZygoteRequest = new HttpZygoteRequest(request, sessionFactory);
-        this.mHttpZygoteResponse = new HttpZygoteResponse(response, sessionFactory);
+    HttpSessionFactory sessionFactory = new HttpSessionFactory();
+    this.mHttpZygoteRequest = new HttpZygoteRequest(request, sessionFactory);
+    this.mHttpZygoteResponse = new HttpZygoteResponse(response, sessionFactory);
 
-        SSLEngineFactory sslEngineFactory;
-        try {
-            sslEngineFactory = SSLEngineFactory.get(jks);
-        } catch (GeneralSecurityException | IOException e) {
-            sslEngineFactory = null;
+    SSLEngineFactory sslEngineFactory;
+    try {
+      sslEngineFactory = SSLEngineFactory.get(jks);
+    } catch (GeneralSecurityException | IOException | NullPointerException e) {
+      sslEngineFactory = null;
+    }
+
+    // Add default interceptors.
+    HttpSSLCodecInterceptor codecInterceptor = new HttpSSLCodecInterceptor(sslEngineFactory, request, response);
+    this.mInterceptors = new ArrayList<>(8);
+
+    mInterceptors.add(new HttpSniffInterceptor(sessionFactory.create(session.id)));
+    mInterceptors.add(codecInterceptor);
+    mInterceptors.add(new Http2SniffInterceptor(codecInterceptor));
+    mInterceptors.add(new Http2DecodeInterceptor(codecInterceptor, mHttpZygoteRequest, mHttpZygoteResponse));
+    mInterceptors.add(new HttpMultiplexInterceptor(mHttpZygoteRequest, mHttpZygoteResponse));
+    mInterceptors.add(new HttpHeaderSniffInterceptor(codecInterceptor));
+    mInterceptors.add(new ContainerHttpInterceptor(new HttpInterceptorsFactory() {
+      @NonNull
+      @Override
+      public List<HttpInterceptor> create() {
+        List<HttpInterceptor> subs = new ArrayList<>(factories.size() + 2);
+        subs.add(new HttpHeaderSeparateInterceptor());
+        subs.add(new HttpHeaderParseInterceptor());
+        // Add extension interceptors.
+        for (HttpInterceptorFactory factory : factories) {
+          subs.add(factory.create());
         }
+        return subs;
+      }
+    }));
+    // Goalkeepers.
+    mInterceptors.add(mInterceptors.size(), new Http2EncodeInterceptor());
+    mInterceptors.add(mInterceptors.size(), new HttpSSLRefluxInterceptor(codecInterceptor));
 
-        // Add default interceptors.
-        HttpSSLCodecInterceptor codecInterceptor = new HttpSSLCodecInterceptor(sslEngineFactory, request, response);
-        this.mInterceptors = new ArrayList<>(8);
+    //
+    // SSL Flow Model:
+    //
+    //        Request                                  Response
+    //
+    //     out        in                             in        out
+    //      ⇈         ⇊                               ⇊         ⇈
+    //       Encrypted                                 Encrypted
+    //      ⇈         ⇊                               ⇊         ⇈
+    //   -----------------------------------------------------------
+    //  |                     Codec Interceptor                     |
+    //   -----------------------------------------------------------
+    //      ⇈  |      ⇊              ...              ⇊      |  ⇈
+    //         |      ⇊              ...              ⇊      |
+    //      ⇈  |  Decrypted  |   interceptors  |  Decrypted  |  ⇈
+    //         |      ⇊              ...              ⇊      |
+    //      ⇈  |      ⇊              ...              ⇊      |  ⇈
+    //   -----------------------------------------------------------
+    //  |                     Reflux Interceptor                    |
+    //   -----------------------------------------------------------
+    //      ⇈ ⇇  ⇇  ⇇ ⇊                               ⇊ ⇉  ⇉  ⇉ ⇈
+    //
+  }
 
-        mInterceptors.add(new HttpSniffInterceptor(sessionFactory.create(session.id)));
-        mInterceptors.add(codecInterceptor);
-        mInterceptors.add(new Http2SniffInterceptor(codecInterceptor));
-        mInterceptors.add(new Http2DecodeInterceptor(codecInterceptor, mHttpZygoteRequest, mHttpZygoteResponse));
-        mInterceptors.add(new HttpMultiplexInterceptor(mHttpZygoteRequest, mHttpZygoteResponse));
-        mInterceptors.add(new HttpHeaderSniffInterceptor(codecInterceptor));
-        mInterceptors.add(new ContainerHttpInterceptor(new HttpInterceptorsFactory() {
-            @NonNull
-            @Override
-            public List<HttpInterceptor> create() {
-                List<HttpInterceptor> subs = new ArrayList<>(factories.size() + 2);
-                subs.add(new HttpHeaderSeparateInterceptor());
-                subs.add(new HttpHeaderParseInterceptor());
-                // Add extension interceptors.
-                for (HttpInterceptorFactory factory : factories) {
-                    subs.add(factory.create());
-                }
-                return subs;
-            }
-        }));
-        // Goalkeepers.
-        mInterceptors.add(mInterceptors.size(), new Http2EncodeInterceptor());
-        mInterceptors.add(mInterceptors.size(), new HttpSSLRefluxInterceptor(codecInterceptor));
+  @Override
+  public void onSpecRequest(ByteBuffer buffer) throws IOException {
+    new HttpRequestChain(mHttpZygoteRequest, mInterceptors).process(buffer);
+  }
 
-        //
-        // SSL Flow Model:
-        //
-        //        Request                                  Response
-        //
-        //     out        in                             in        out
-        //      ⇈         ⇊                               ⇊         ⇈
-        //       Encrypted                                 Encrypted
-        //      ⇈         ⇊                               ⇊         ⇈
-        //   -----------------------------------------------------------
-        //  |                     Codec Interceptor                     |
-        //   -----------------------------------------------------------
-        //      ⇈  |      ⇊              ...              ⇊      |  ⇈
-        //         |      ⇊              ...              ⇊      |
-        //      ⇈  |  Decrypted  |   interceptors  |  Decrypted  |  ⇈
-        //         |      ⇊              ...              ⇊      |
-        //      ⇈  |      ⇊              ...              ⇊      |  ⇈
-        //   -----------------------------------------------------------
-        //  |                     Reflux Interceptor                    |
-        //   -----------------------------------------------------------
-        //      ⇈ ⇇  ⇇  ⇇ ⇊                               ⇊ ⇉  ⇉  ⇉ ⇈
-        //
+  @Override
+  public void onSpecResponse(ByteBuffer buffer) throws IOException {
+    new HttpResponseChain(mHttpZygoteResponse, mInterceptors).process(buffer);
+  }
+
+  @Override
+  public void onSpecRequestFinished() {
+    for (HttpInterceptor interceptor : mInterceptors) {
+      interceptor.onRequestFinished(mHttpZygoteRequest);
     }
+  }
 
-    @Override
-    public void onSpecRequest(ByteBuffer buffer) throws IOException {
-        new HttpRequestChain(mHttpZygoteRequest, mInterceptors).process(buffer);
+  @Override
+  public void onSpecResponseFinished() {
+    for (HttpInterceptor interceptor : mInterceptors) {
+      interceptor.onResponseFinished(mHttpZygoteResponse);
     }
-
-    @Override
-    public void onSpecResponse(ByteBuffer buffer) throws IOException {
-        new HttpResponseChain(mHttpZygoteResponse, mInterceptors).process(buffer);
-    }
-
-    @Override
-    public void onSpecRequestFinished() {
-        for (HttpInterceptor interceptor: mInterceptors) {
-            interceptor.onRequestFinished(mHttpZygoteRequest);
-        }
-    }
-
-    @Override
-    public void onSpecResponseFinished() {
-        for (HttpInterceptor interceptor: mInterceptors) {
-            interceptor.onResponseFinished(mHttpZygoteResponse);
-        }
-    }
+  }
 
 }

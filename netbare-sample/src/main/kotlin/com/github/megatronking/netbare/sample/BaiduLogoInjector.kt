@@ -26,8 +26,10 @@ class BaiduLogoInjector : SimpleHttpInjector() {
 
     override fun sniffResponse(response: HttpResponse): Boolean {
         // 请求url匹配时才进行注入
+        val url = response.url()
         val shouldInject = "https://m.baidu.com/static/index/plus/plus_logo.png".equals(
-                response.url())
+            url
+        )
         if (shouldInject) {
             Log.i(TAG, "Start Miss. Du logo injection!")
         }

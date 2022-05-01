@@ -16,7 +16,8 @@
 package com.github.megatronking.netbare;
 
 import android.app.PendingIntent;
-import android.support.annotation.NonNull;
+
+import androidx.annotation.NonNull;
 
 import com.github.megatronking.netbare.gateway.VirtualGatewayFactory;
 import com.github.megatronking.netbare.http.HttpInterceptorFactory;
@@ -41,303 +42,303 @@ import java.util.Set;
  */
 public final class NetBareConfig {
 
-    String session;
-    PendingIntent configureIntent;
-    int mtu;
-    IpAddress address;
-    Set<IpAddress> routes;
-    Set<String> dnsServers;
-    Set<String> allowedApplications;
-    Set<String> disallowedApplications;
-    Set<String> allowedHosts;
-    Set<String> disallowedHosts;
-    VirtualGatewayFactory gatewayFactory;
-    UidProvider uidProvider;
-    boolean dumpUid;
-    boolean excludeSelf;
-    SSLKeyManagerProvider keyManagerProvider;
-    SSLTrustManagerProvider trustManagerProvider;
+  String session;
+  PendingIntent configureIntent;
+  int mtu;
+  IpAddress address;
+  Set<IpAddress> routes;
+  Set<String> dnsServers;
+  Set<String> allowedApplications;
+  Set<String> disallowedApplications;
+  Set<String> allowedHosts;
+  Set<String> disallowedHosts;
+  VirtualGatewayFactory gatewayFactory;
+  UidProvider uidProvider;
+  boolean dumpUid;
+  boolean excludeSelf;
+  SSLKeyManagerProvider keyManagerProvider;
+  SSLTrustManagerProvider trustManagerProvider;
 
-    private NetBareConfig() {
+  private NetBareConfig() {
+  }
+
+  /**
+   * Create a new builder based on the current.
+   *
+   * @return A new builder instance.
+   */
+  public Builder newBuilder() {
+    Builder builder = new Builder();
+    builder.mConfig = this;
+    return builder;
+  }
+
+  /**
+   * Create a default config using {@link HttpVirtualGatewayFactory} for HTTP protocol.
+   *
+   * @param jks          JSK instance, not null.
+   * @param interceptors A collection of {@link HttpInterceptorFactory}.
+   * @return A NetBare config instance.
+   */
+  public static NetBareConfig defaultHttpConfig(JKS jks,
+                                                List<HttpInterceptorFactory> interceptors) {
+    return defaultConfig().newBuilder()
+        .setVirtualGatewayFactory(new HttpVirtualGatewayFactory(jks, interceptors))
+        .build();
+  }
+
+  /**
+   * Create a default config.
+   *
+   * @return A NetBare config instance.
+   */
+  public static NetBareConfig defaultConfig() {
+    return new Builder()
+        .dumpUid(false)
+        .setMtu(4096)
+        .setAddress(new IpAddress("10.1.10.1", 32))
+        .setSession("NetBare")
+        .addRoute(new IpAddress("0.0.0.0", 0))
+        .build();
+  }
+
+  /**
+   * Helper class to createServerEngine a VPN Service.
+   */
+  public static class Builder {
+
+    private NetBareConfig mConfig;
+
+    public Builder() {
+      this.mConfig = new NetBareConfig();
+      this.mConfig.routes = new HashSet<>();
+      this.mConfig.dnsServers = new HashSet<>();
+      this.mConfig.allowedApplications = new HashSet<>();
+      this.mConfig.disallowedApplications = new HashSet<>();
+      this.mConfig.allowedHosts = new HashSet<>();
+      this.mConfig.disallowedHosts = new HashSet<>();
     }
 
     /**
-     * Create a new builder based on the current.
+     * Set the name of this session. It will be displayed in system-managed dialogs and
+     * notifications. This is recommended not required.
      *
-     * @return A new builder instance.
+     * @param session Session name.
+     * @return this {@link Builder} object to facilitate chaining method calls.
      */
-    public Builder newBuilder() {
-        Builder builder = new Builder();
-        builder.mConfig = this;
-        return builder;
+    public Builder setSession(@NonNull String session) {
+      mConfig.session = session;
+      return this;
     }
 
     /**
-     * Create a default config using {@link HttpVirtualGatewayFactory} for HTTP protocol.
+     * Set the {@link PendingIntent} to an activity for users to configure the VPN connection.
+     * If it is not set, the button to configure will not be shown in system-managed dialogs.
      *
-     * @param jks JSK instance, not null.
-     * @param interceptors A collection of {@link HttpInterceptorFactory}.
-     * @return A NetBare config instance.
+     * @param intent An Activity intent.
+     * @return this {@link Builder} object to facilitate chaining method calls.
      */
-    public static NetBareConfig defaultHttpConfig(@NonNull JKS jks,
-                                                  List<HttpInterceptorFactory> interceptors) {
-        return defaultConfig().newBuilder()
-                .setVirtualGatewayFactory(new HttpVirtualGatewayFactory(jks, interceptors))
-                .build();
+    public Builder setConfigureIntent(@NonNull PendingIntent intent) {
+      mConfig.configureIntent = intent;
+      return this;
     }
 
     /**
-     * Create a default config.
+     * Set the maximum transmission unit (MTU) of the VPN interface. If it is not set, the
+     * default value in the operating system will be used.
      *
-     * @return A NetBare config instance.
+     * @param mtu Maximum transmission unit (MTU).
+     * @return this {@link Builder} object to facilitate chaining method calls.
      */
-    public static NetBareConfig defaultConfig() {
-        return new Builder()
-                .dumpUid(false)
-                .setMtu(4096)
-                .setAddress(new IpAddress("10.1.10.1", 32))
-                .setSession("NetBare")
-                .addRoute(new IpAddress("0.0.0.0", 0))
-                .build();
+    public Builder setMtu(int mtu) {
+      mConfig.mtu = mtu;
+      return this;
     }
 
     /**
-     * Helper class to createServerEngine a VPN Service.
+     * Convenience method to add a network address to the VPN interface using a numeric address
+     * string. See {@link InetAddress} for the definitions of numeric address formats.
+     * <p>
+     * Adding an address implicitly allows traffic from that address family (i.e., IPv4 or IPv6)
+     * to be routed over the VPN.
+     *
+     * @param address IPv4 or IPv6 address.
+     * @return this {@link Builder} object to facilitate chaining method calls.
      */
-    public static class Builder {
-
-        private NetBareConfig mConfig;
-
-        public Builder() {
-            this.mConfig = new NetBareConfig();
-            this.mConfig.routes = new HashSet<>();
-            this.mConfig.dnsServers = new HashSet<>();
-            this.mConfig.allowedApplications = new HashSet<>();
-            this.mConfig.disallowedApplications = new HashSet<>();
-            this.mConfig.allowedHosts = new HashSet<>();
-            this.mConfig.disallowedHosts = new HashSet<>();
-        }
-
-        /**
-         * Set the name of this session. It will be displayed in system-managed dialogs and
-         * notifications. This is recommended not required.
-         *
-         * @param session Session name.
-         * @return this {@link Builder} object to facilitate chaining method calls.
-         */
-        public Builder setSession(@NonNull String session) {
-            mConfig.session = session;
-            return this;
-        }
-
-        /**
-         * Set the {@link PendingIntent} to an activity for users to configure the VPN connection.
-         * If it is not set, the button to configure will not be shown in system-managed dialogs.
-         *
-         * @param intent An Activity intent.
-         * @return this {@link Builder} object to facilitate chaining method calls.
-         */
-        public Builder setConfigureIntent(@NonNull PendingIntent intent) {
-            mConfig.configureIntent = intent;
-            return this;
-        }
-
-        /**
-         * Set the maximum transmission unit (MTU) of the VPN interface. If it is not set, the
-         * default value in the operating system will be used.
-         *
-         * @param mtu Maximum transmission unit (MTU).
-         * @return this {@link Builder} object to facilitate chaining method calls.
-         */
-        public Builder setMtu(int mtu) {
-            mConfig.mtu = mtu;
-            return this;
-        }
-
-        /**
-         * Convenience method to add a network address to the VPN interface using a numeric address
-         * string. See {@link InetAddress} for the definitions of numeric address formats.
-         *
-         * Adding an address implicitly allows traffic from that address family (i.e., IPv4 or IPv6)
-         * to be routed over the VPN.
-         *
-         * @param address IPv4 or IPv6 address.
-         * @return this {@link Builder} object to facilitate chaining method calls.
-         */
-        public Builder setAddress(@NonNull IpAddress address) {
-            mConfig.address = address;
-            return this;
-        }
-
-        /**
-         * Add a network route to the VPN interface. Both IPv4 and IPv6 routes are supported.
-         *
-         * Adding a route implicitly allows traffic from that address family (i.e., IPv4 or IPv6)
-         * to be routed over the VPN.
-         *
-         * @param address IPv4 or IPv6 address.
-         * @return this {@link Builder} object to facilitate chaining method calls.
-         */
-        public Builder addRoute(@NonNull IpAddress address) {
-            mConfig.routes.add(address);
-            return this;
-        }
-
-        /**
-         * Add a DNS server to the VPN connection. Both IPv4 and IPv6 addresses are supported.
-         * If none is set, the DNS servers of the default network will be used.
-         *
-         * Adding a server implicitly allows traffic from that address family (i.e., IPv4 or IPv6)
-         * to be routed over the VPN.
-         *
-         * @param address IPv4 or IPv6 address.
-         * @return this {@link Builder} object to facilitate chaining method calls.
-         */
-        public Builder addDnsServer(@NonNull String address) {
-            mConfig.dnsServers.add(address);
-            return this;
-        }
-
-        /**
-         * Adds an application that's allowed to access the VPN connection.
-         *
-         * If this method is called at least once, only applications added through this method (and
-         * no others) are allowed access. Else (if this method is never called), all applications
-         * are allowed by default.  If some applications are added, other, un-added applications
-         * will use networking as if the VPN wasn't running.
-         *
-         * @param packageName The full name (e.g.: "com.google.apps.contacts") of an application.
-         * @return this {@link Builder} object to facilitate chaining method calls.
-         */
-        public Builder addAllowedApplication(@NonNull String packageName) {
-            mConfig.allowedApplications.add(packageName);
-            return this;
-        }
-
-        /**
-         * Adds an application that's denied access to the VPN connection.
-         *
-         * By default, all applications are allowed access, except for those denied through this
-         * method.  Denied applications will use networking as if the VPN wasn't running.
-         *
-         * @param packageName The full name (e.g.: "com.google.apps.contacts") of an application.
-         * @return this {@link Builder} object to facilitate chaining method calls.
-         */
-        public Builder addDisallowedApplication(@NonNull String packageName) {
-            mConfig.disallowedApplications.add(packageName);
-            return this;
-        }
-
-        /**
-         * Adds an ip host or a domain host that's allowed to capture.
-         *
-         * @param host An ip host or a domain host, not support the domain host.
-         * @return this {@link Builder} object to facilitate chaining method calls.
-         */
-        public Builder addAllowedHost(@NonNull String host) {
-            mConfig.allowedHosts.add(host);
-            return this;
-        }
-
-        /**
-         * Adds an ip host or a domain host that's denied access to capture.
-         *
-         * @param host An ip host or a domain host, not support the domain host.
-         * @return this {@link Builder} object to facilitate chaining method calls.
-         */
-        public Builder addDisallowedHost(@NonNull String host) {
-            mConfig.disallowedHosts.add(host);
-            return this;
-        }
-
-        /**
-         * Set the factory of gateway, the gateway will handle some intercepted actions before the
-         * server and client received the final data.
-         *
-         * @param gatewayFactory A factory of gateway.
-         * @return this {@link Builder} object to facilitate chaining method calls.
-         */
-        public Builder setVirtualGatewayFactory(VirtualGatewayFactory gatewayFactory) {
-            mConfig.gatewayFactory = gatewayFactory;
-            return this;
-        }
-
-        /**
-         * Dump the uid of the session, you can get the value from {@link Session#uid}. This config
-         * will cost much battery.
-         *
-         * <p>Android Q removes access to /proc/net, this config doesn't work on Android Q.</p>
-         *
-         * @param dumpUid Should dump session's uid from /proc/net/
-         * @return this {@link Builder} object to facilitate chaining method calls.
-         */
-        public Builder dumpUid(boolean dumpUid) {
-            mConfig.dumpUid = dumpUid;
-            return this;
-        }
-
-        /**
-         * Exclude all net packets of the app self, this config is associated with {@link #dumpUid}.
-         * If the config of dumpUid is false, the excludeSelf will be forced to false too.
-         *
-         * @param excludeSelf Should exclude all net packets of the app self.
-         * @return this {@link Builder} object to facilitate chaining method calls.
-         */
-        public Builder excludeSelf(boolean excludeSelf) {
-            mConfig.excludeSelf = excludeSelf;
-            return this;
-        }
-
-        /**
-         * Sets an uid provider.
-         *
-         * @param provider This interface provides a known uid for a session.
-         * @return this {@link Builder} object to facilitate chaining method calls.
-         */
-        public Builder setUidProvider(UidProvider provider) {
-            mConfig.uidProvider = provider;
-            return this;
-        }
-
-        /**
-         * Set a SSL KeyManager provider, NetBare will use it to initialize
-         * {@link javax.net.ssl.SSLContext}.
-         *
-         * If not set, the MITM server will use a self-signed root CA, the MITM client will set the
-         * parameter to null when initializing {@link javax.net.ssl.SSLContext}.
-         *
-         * @param provider This interface provides {@link javax.net.ssl.KeyManager[]}
-         * @return this {@link Builder} object to facilitate chaining method calls.
-         */
-        public Builder setSSLKeyManagerProvider(SSLKeyManagerProvider provider) {
-            mConfig.keyManagerProvider = provider;
-            return this;
-        }
-
-        /**
-         * Set a SSL TrustManager provider, NetBare will use it to initialize
-         * {@link javax.net.ssl.SSLContext}.
-         *
-         * If not set, the MITM server and client will set the parameter to null when initializing
-         * {@link javax.net.ssl.SSLContext}.
-         *
-         * @param provider This interface provides {@link javax.net.ssl.TrustManager[]}
-         * @return this {@link Builder} object to facilitate chaining method calls.
-         */
-        public Builder setSSLTrustManagerProvider(SSLTrustManagerProvider provider) {
-            mConfig.trustManagerProvider = provider;
-            return this;
-        }
-
-        /**
-         * Create the instance of {@link NetBareConfig}.
-         *
-         * @return The instance of {@link NetBareConfig}.
-         */
-        public NetBareConfig build() {
-            return mConfig;
-        }
-
+    public Builder setAddress(@NonNull IpAddress address) {
+      mConfig.address = address;
+      return this;
     }
+
+    /**
+     * Add a network route to the VPN interface. Both IPv4 and IPv6 routes are supported.
+     * <p>
+     * Adding a route implicitly allows traffic from that address family (i.e., IPv4 or IPv6)
+     * to be routed over the VPN.
+     *
+     * @param address IPv4 or IPv6 address.
+     * @return this {@link Builder} object to facilitate chaining method calls.
+     */
+    public Builder addRoute(@NonNull IpAddress address) {
+      mConfig.routes.add(address);
+      return this;
+    }
+
+    /**
+     * Add a DNS server to the VPN connection. Both IPv4 and IPv6 addresses are supported.
+     * If none is set, the DNS servers of the default network will be used.
+     * <p>
+     * Adding a server implicitly allows traffic from that address family (i.e., IPv4 or IPv6)
+     * to be routed over the VPN.
+     *
+     * @param address IPv4 or IPv6 address.
+     * @return this {@link Builder} object to facilitate chaining method calls.
+     */
+    public Builder addDnsServer(@NonNull String address) {
+      mConfig.dnsServers.add(address);
+      return this;
+    }
+
+    /**
+     * Adds an application that's allowed to access the VPN connection.
+     * <p>
+     * If this method is called at least once, only applications added through this method (and
+     * no others) are allowed access. Else (if this method is never called), all applications
+     * are allowed by default.  If some applications are added, other, un-added applications
+     * will use networking as if the VPN wasn't running.
+     *
+     * @param packageName The full name (e.g.: "com.google.apps.contacts") of an application.
+     * @return this {@link Builder} object to facilitate chaining method calls.
+     */
+    public Builder addAllowedApplication(@NonNull String packageName) {
+      mConfig.allowedApplications.add(packageName);
+      return this;
+    }
+
+    /**
+     * Adds an application that's denied access to the VPN connection.
+     * <p>
+     * By default, all applications are allowed access, except for those denied through this
+     * method.  Denied applications will use networking as if the VPN wasn't running.
+     *
+     * @param packageName The full name (e.g.: "com.google.apps.contacts") of an application.
+     * @return this {@link Builder} object to facilitate chaining method calls.
+     */
+    public Builder addDisallowedApplication(@NonNull String packageName) {
+      mConfig.disallowedApplications.add(packageName);
+      return this;
+    }
+
+    /**
+     * Adds an ip host or a domain host that's allowed to capture.
+     *
+     * @param host An ip host or a domain host, not support the domain host.
+     * @return this {@link Builder} object to facilitate chaining method calls.
+     */
+    public Builder addAllowedHost(@NonNull String host) {
+      mConfig.allowedHosts.add(host);
+      return this;
+    }
+
+    /**
+     * Adds an ip host or a domain host that's denied access to capture.
+     *
+     * @param host An ip host or a domain host, not support the domain host.
+     * @return this {@link Builder} object to facilitate chaining method calls.
+     */
+    public Builder addDisallowedHost(@NonNull String host) {
+      mConfig.disallowedHosts.add(host);
+      return this;
+    }
+
+    /**
+     * Set the factory of gateway, the gateway will handle some intercepted actions before the
+     * server and client received the final data.
+     *
+     * @param gatewayFactory A factory of gateway.
+     * @return this {@link Builder} object to facilitate chaining method calls.
+     */
+    public Builder setVirtualGatewayFactory(VirtualGatewayFactory gatewayFactory) {
+      mConfig.gatewayFactory = gatewayFactory;
+      return this;
+    }
+
+    /**
+     * Dump the uid of the session, you can get the value from {@link Session#uid}. This config
+     * will cost much battery.
+     *
+     * <p>Android Q removes access to /proc/net, this config doesn't work on Android Q.</p>
+     *
+     * @param dumpUid Should dump session's uid from /proc/net/
+     * @return this {@link Builder} object to facilitate chaining method calls.
+     */
+    public Builder dumpUid(boolean dumpUid) {
+      mConfig.dumpUid = dumpUid;
+      return this;
+    }
+
+    /**
+     * Exclude all net packets of the app self, this config is associated with {@link #dumpUid}.
+     * If the config of dumpUid is false, the excludeSelf will be forced to false too.
+     *
+     * @param excludeSelf Should exclude all net packets of the app self.
+     * @return this {@link Builder} object to facilitate chaining method calls.
+     */
+    public Builder excludeSelf(boolean excludeSelf) {
+      mConfig.excludeSelf = excludeSelf;
+      return this;
+    }
+
+    /**
+     * Sets an uid provider.
+     *
+     * @param provider This interface provides a known uid for a session.
+     * @return this {@link Builder} object to facilitate chaining method calls.
+     */
+    public Builder setUidProvider(UidProvider provider) {
+      mConfig.uidProvider = provider;
+      return this;
+    }
+
+    /**
+     * Set a SSL KeyManager provider, NetBare will use it to initialize
+     * {@link javax.net.ssl.SSLContext}.
+     * <p>
+     * If not set, the MITM server will use a self-signed root CA, the MITM client will set the
+     * parameter to null when initializing {@link javax.net.ssl.SSLContext}.
+     *
+     * @param provider This interface provides {@link javax.net.ssl.KeyManager[]}
+     * @return this {@link Builder} object to facilitate chaining method calls.
+     */
+    public Builder setSSLKeyManagerProvider(SSLKeyManagerProvider provider) {
+      mConfig.keyManagerProvider = provider;
+      return this;
+    }
+
+    /**
+     * Set a SSL TrustManager provider, NetBare will use it to initialize
+     * {@link javax.net.ssl.SSLContext}.
+     * <p>
+     * If not set, the MITM server and client will set the parameter to null when initializing
+     * {@link javax.net.ssl.SSLContext}.
+     *
+     * @param provider This interface provides {@link javax.net.ssl.TrustManager[]}
+     * @return this {@link Builder} object to facilitate chaining method calls.
+     */
+    public Builder setSSLTrustManagerProvider(SSLTrustManagerProvider provider) {
+      mConfig.trustManagerProvider = provider;
+      return this;
+    }
+
+    /**
+     * Create the instance of {@link NetBareConfig}.
+     *
+     * @return The instance of {@link NetBareConfig}.
+     */
+    public NetBareConfig build() {
+      return mConfig;
+    }
+
+  }
 
 }

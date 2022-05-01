@@ -3,7 +3,7 @@ package com.github.megatronking.netbare.sample
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-import android.support.v7.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatActivity
 import android.widget.Button
 import com.github.megatronking.netbare.NetBare
 import com.github.megatronking.netbare.NetBareConfig
@@ -62,14 +62,15 @@ class MainActivity : AppCompatActivity(), NetBareListener {
 
     private fun prepareNetBare() {
         // 安装自签证书
-        if (!JKS.isInstalled(this, App.JSK_ALIAS)) {
-            try {
-                JKS.install(this, App.JSK_ALIAS, App.JSK_ALIAS)
-            } catch(e : IOException) {
-                // 安装失败
-            }
-            return
-        }
+        // if (!JKS.isInstalled(this, App.JSK_ALIAS)) {
+        //     try {
+        //         JKS.install(this, App.JSK_ALIAS, App.JSK_ALIAS)
+        //     } catch(e : IOException) {
+        //         // 安装失败
+        //         e.printStackTrace()
+        //     }
+        //     return
+        // }
         // 配置VPN
         val intent = NetBare.get().prepare()
         if (intent != null) {
@@ -77,7 +78,7 @@ class MainActivity : AppCompatActivity(), NetBareListener {
             return
         }
         // 启动NetBare服务
-        mNetBare.start(NetBareConfig.defaultHttpConfig(App.getInstance().getJSK(),
+        mNetBare.start(NetBareConfig.defaultHttpConfig(null,
                 interceptorFactories()))
     }
 
