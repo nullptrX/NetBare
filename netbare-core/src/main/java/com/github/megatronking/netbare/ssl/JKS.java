@@ -19,8 +19,8 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.security.KeyChain;
+
 import androidx.annotation.NonNull;
-import androidx.core.content.FileProvider;
 
 import com.github.megatronking.netbare.NetBareLog;
 import com.github.megatronking.netbare.NetBareUtils;
@@ -32,6 +32,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Writer;
 import java.security.KeyStore;
@@ -57,11 +58,13 @@ public class JKS {
   private final String organizationalUnitName;
   private final String certOrganization;
   private final String certOrganizationalUnitName;
+  private final Context context;
 
   public JKS(@NonNull Context context, @NonNull String alias, @NonNull char[] password,
              @NonNull String commonName, @NonNull String organization,
              @NonNull String organizationalUnitName, @NonNull String certOrganization,
              @NonNull String certOrganizationalUnitName) {
+    this.context = context;
     this.keystoreDir = context.getCacheDir();
     this.alias = alias;
     this.password = password;
@@ -71,6 +74,10 @@ public class JKS {
     this.certOrganization = certOrganization;
     this.certOrganizationalUnitName = certOrganizationalUnitName;
     createKeystore();
+  }
+
+  Context getContext() {
+    return context;
   }
 
   String alias() {
@@ -146,6 +153,20 @@ public class JKS {
         }
       }
     }).start();
+  }
+
+  private static long copyTo(@NonNull InputStream in, @NonNull OutputStream out, int bufferSize) {
+    long bytesCopied = 0L;
+    byte[] buffer = new byte[bufferSize];
+    try {
+      for (int bytes = in.read(buffer); bytes >= 0; bytes = in.read(buffer)) {
+        out.write(buffer, 0, bytes);
+        bytesCopied += (long) bytes;
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    return bytesCopied;
   }
 
   /**

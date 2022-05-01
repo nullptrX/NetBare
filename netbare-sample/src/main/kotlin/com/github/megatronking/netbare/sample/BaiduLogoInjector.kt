@@ -20,38 +20,42 @@ import java.nio.ByteBuffer
  */
 class BaiduLogoInjector : SimpleHttpInjector() {
 
-    companion object {
-        const val TAG = "BaiduLogoInjector"
-    }
+  companion object {
+    const val TAG = "BaiduLogoInjector"
+  }
 
-    override fun sniffResponse(response: HttpResponse): Boolean {
-        // 请求url匹配时才进行注入
-        val url = response.url()
-        val shouldInject = "https://m.baidu.com/static/index/plus/plus_logo.png".equals(
-            url
-        )
-        if (shouldInject) {
-            Log.i(TAG, "Start Miss. Du logo injection!")
-        }
-        return shouldInject
-    }
+  override fun sniffResponse(response: HttpResponse): Boolean {
+    // 请求url匹配时才进行注入
+    val url = response.url()
 
-    override fun onResponseInject(header: HttpResponseHeaderPart, callback: InjectorCallback) {
-        // 响应体大小变化，一定要先更新header中的content-length
-        val newHeader = header.newBuilder()
-                .replaceHeader("content-length", "10764")
-                .build()
-        callback.onFinished(newHeader)
-        Log.i(TAG, "Inject header completed!")
+    // val shouldInject = "https://m.baidu.com/static/index/plus/plus_logo.png".equals(url)
+    val shouldInject = "http://www.baidu.com/img/flexible/logo/plus_logo_web_2.png".equals(url)
+    if (shouldInject) {
+      Log.i(TAG, "Start Miss. Du logo injection!")
     }
+    return shouldInject
+  }
 
-    override fun onResponseInject(response: HttpResponse, body: HttpBody, callback: InjectorCallback) {
-        // 替换图片请求响应体
-        val injectIOStream = App.getInstance().resources.openRawResource(R.raw.baidu_inject_logo)
-        val injectStream = BufferStream(ByteBuffer.wrap(injectIOStream.readBytes()))
-        injectIOStream.close()
-        callback.onFinished(injectStream)
-        Log.i(TAG, "Inject body completed!")
-    }
+  override fun onResponseInject(header: HttpResponseHeaderPart, callback: InjectorCallback) {
+    // 响应体大小变化，一定要先更新header中的content-length
+    val newHeader = header.newBuilder()
+      .replaceHeader("content-length", "10764")
+      .build()
+    callback.onFinished(newHeader)
+    Log.i(TAG, "Inject header completed!")
+  }
+
+  override fun onResponseInject(
+    response: HttpResponse,
+    body: HttpBody,
+    callback: InjectorCallback
+  ) {
+    // 替换图片请求响应体
+    val injectIOStream = App.getInstance().resources.openRawResource(R.raw.baidu_inject_logo)
+    val injectStream = BufferStream(ByteBuffer.wrap(injectIOStream.readBytes()))
+    injectIOStream.close()
+    callback.onFinished(injectStream)
+    Log.i(TAG, "Inject body completed!")
+  }
 
 }

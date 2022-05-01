@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+  <base-config cleartextTrafficPermitted="true">
+    <trust-anchors>
+      <certificates src="system" />
+      <certificates src="user" />
+    </trust-anchors>
+  </base-config>
+  <!--<domain-config cleartextTrafficPermitted="true">
+    <domain includeSubdomains="true">baidu.com</domain>
+    <trust-anchors>
+      <certificates
+        overridePins="true"
+        src="@raw/cer" />
+    </trust-anchors>
+    <pin-set>
+      <pin digest="SHA-256">6Kq5ZsFvvlJKwx2ozt5G0a1L28TJPdrPsoGBBDLwzY8</pin>
+      &lt;!&ndash; backup pin &ndash;&gt;
+      <pin digest="SHA-256">6Kq5ZsFvvlJKwx2ozt5G0a1L28TJPdrPsoGBBDLwzY8</pin>
+    </pin-set>
+  </domain-config>-->
+</network-security-config>
